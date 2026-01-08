@@ -180,6 +180,36 @@ export default function Main() {
     }
   };
 
+  // Fetch initial location on component mount
+  useEffect(() => {
+    const fetchInitialLocation = async () => {
+      try {
+        // Request permissions if not already granted
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Location permission is required for safety features.');
+          return;
+        }
+        
+        // Get the current location immediately
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+        
+        setCurrentLocation({ latitude, longitude });
+        const address = await reverseGeocode(latitude, longitude);
+        setCurrentAddress(address || 'Location unavailable');
+        
+        console.log('Initial location fetched on component mount');
+      } catch (error) {
+        console.error('Error fetching initial location:', error);
+        setCurrentAddress('Location unavailable');
+      }
+    };
+    
+    fetchInitialLocation();
+  }, []); // Empty dependency array means this runs once on mount
+
+  // Handle location watching based on safety mode
   useEffect(() => {
     let isMounted = true;
     let watchSubscription: Location.LocationSubscription | null = null;
@@ -193,17 +223,7 @@ export default function Main() {
           return;
         }
         
-        // First, get the current location immediately
-        const location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-        
-        if (isMounted) {
-          setCurrentLocation({ latitude, longitude });
-          const address = await reverseGeocode(latitude, longitude);
-          setCurrentAddress(address || 'Location unavailable');
-        }
-        
-        // Then start watching for updates
+        // Start watching for updates
         watchSubscription = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Balanced,
