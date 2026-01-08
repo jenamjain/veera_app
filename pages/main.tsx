@@ -1,6 +1,7 @@
+
 // pages/main.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, ToastAndroid, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, ToastAndroid } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import Switcher1 from '../components/Switcher1'; // Adjust path as needed
@@ -26,8 +27,8 @@ export default function Main() {
   const [currentAddress, setCurrentAddress] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [emergencyContacts, setEmergencyContacts] = useState<Array<{name: string, number: string}>>([
-    // {name: 'Women Helpline', number: '181'},
-    // {name: 'Police', number: '100'}
+    {name: 'Women Helpline', number: '181'},
+    {name: 'Police', number: '100'}
   ]);
   const [showAddContact, setShowAddContact] = useState(false);
   const [newContact, setNewContact] = useState({ name: '', number: '' });
@@ -115,10 +116,6 @@ export default function Main() {
   };
   if (isSafetyActive) {
     startWatchingLocation();
-    // Send safety mode alert when turned on
-    if (emergencyContacts.length > 0) {
-      sendSafetyModeAlert();
-    }
   } else if (locationSubscription) {
     // Clean up subscription when safety mode is turned off
     locationSubscription.remove();
@@ -165,105 +162,9 @@ export default function Main() {
       Alert.alert('Error', 'Network error occurred while sending SOS');
     }
   };
-
-  const sendSafetyModeAlert = async () => {
-    const messageBody = `${text || 'User'} switched their location on, they might be in trouble,\nLocation: ${currentAddress || 'Location unavailable'}\nTime: ${new Date().toLocaleString()}\nCalling them might help`;
-    
-    console.log('Starting safety mode alert to all contacts:', emergencyContacts);
-    console.log('Safety mode message:', messageBody);
-    
-    try {
-      // Send SMS to each emergency contact
-      for (let i = 0; i < emergencyContacts.length; i++) {
-        const contact = emergencyContacts[i];
-        const phoneNumber = contact.number.startsWith('+') ? contact.number : `+91${contact.number}`;
-        
-        console.log(`Processing safety alert for contact ${i + 1}/${emergencyContacts.length}:`, contact.name, phoneNumber);
-        
-        // Try different SMS URL formats for better compatibility
-        const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`;
-        
-        try {
-          // Open SMS app with pre-filled message
-          await Linking.openURL(smsUrl);
-          console.log(`✅ Successfully opened safety alert SMS for ${contact.name} (${phoneNumber})`);
-          
-          // Add a delay between opening SMS apps
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        } catch (smsError) {
-          console.error(`❌ Failed to open safety alert SMS for ${contact.name} (${phoneNumber}):`, smsError);
-          
-          // Try alternative format without body as fallback
-          try {
-            const fallbackUrl = `sms:${phoneNumber}`;
-            await Linking.openURL(fallbackUrl);
-            console.log(`✅ Opened safety alert SMS with fallback for ${contact.name} (${phoneNumber})`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          } catch (fallbackError) {
-            console.error(`❌ Safety alert fallback also failed for ${contact.name} (${phoneNumber}):`, fallbackError);
-          }
-        }
-      }
-      
-      console.log('✅ Safety mode alert SMS processing completed for all contacts');
-      ToastAndroid.show(`Safety alert sent to ${emergencyContacts.length} emergency contacts`, ToastAndroid.LONG);
-    } catch (error) {
-      console.error('❌ Error in sendSafetyModeAlert:', error);
-      Alert.alert('Error', 'Failed to send safety alert to some contacts');
-    }
-  };
-
-  const sendSosViaSMS = async () => {
-    const messageBody = `🚨 SOS ALERT\n${text || 'User'} needs help.\nLocation: ${currentAddress || 'Location unavailable'}\nTime: ${new Date().toLocaleString()}`;
-    
-    console.log('Starting SMS send to all contacts:', emergencyContacts);
-    console.log('Message body:', messageBody);
-    
-    try {
-      // Send SMS to each emergency contact
-      for (let i = 0; i < emergencyContacts.length; i++) {
-        const contact = emergencyContacts[i];
-        const phoneNumber = contact.number.startsWith('+') ? contact.number : `+91${contact.number}`;
-        
-        console.log(`Processing contact ${i + 1}/${emergencyContacts.length}:`, contact.name, phoneNumber);
-        
-        // Try different SMS URL formats for better compatibility
-        const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`;
-        
-        try {
-          // Open SMS app with pre-filled message
-          await Linking.openURL(smsUrl);
-          console.log(`✅ Successfully opened SMS for ${contact.name} (${phoneNumber})`);
-          
-          // Add a longer delay to allow user to send the message
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        } catch (smsError) {
-          console.error(`❌ Failed to open SMS for ${contact.name} (${phoneNumber}):`, smsError);
-          
-          // Try alternative format without body as fallback
-          try {
-            const fallbackUrl = `sms:${phoneNumber}`;
-            await Linking.openURL(fallbackUrl);
-            console.log(`✅ Opened SMS with fallback for ${contact.name} (${phoneNumber})`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          } catch (fallbackError) {
-            console.error(`❌ Fallback also failed for ${contact.name} (${phoneNumber}):`, fallbackError);
-          }
-        }
-      }
-      
-      console.log('✅ SMS processing completed for all contacts');
-      ToastAndroid.show(`Processed SMS for ${emergencyContacts.length} emergency contacts`, ToastAndroid.LONG);
-    } catch (error) {
-      console.error('❌ Error in sendSosViaSMS:', error);
-      Alert.alert('Error', 'Failed to open SMS app for some contacts');
-    }
-  };
-
   const handleSOS = () => {
     console.log('SOS button pressed');
-    // sendSosAlert();
-    sendSosViaSMS();
+    sendSosAlert();
   };
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   useEffect(() => {
