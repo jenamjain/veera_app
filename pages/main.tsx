@@ -1,12 +1,11 @@
-
-// pages/main.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, ToastAndroid } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, ToastAndroid, Linking } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import Switcher1 from '../components/Switcher1'; // Adjust path as needed
 import { LocationGeocodedAddress } from 'expo-location';
 import { Ionicons } from '@expo/vector-icons'
+
 type RouteParams = {
   text?: string;
 };
@@ -34,15 +33,36 @@ export default function Main() {
   const [newContact, setNewContact] = useState({ name: '', number: '' });
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
+  
   const localTime = new Date().toLocaleTimeString();
+  
   const isValidIndianPhoneNumber = (phone: string): boolean => {
     const indianMobileRegex = /^[6-9]\d{9}$/;
     const digitsOnly = phone.replace(/\D/g, '');
     return indianMobileRegex.test(digitsOnly);
   };
+  
   const safetyStatusText = isSafetyActive ? 'Safety Mode: Active' : 'Safety Mode: Inactive';
   const safetyStatusTextColor = isSafetyActive ? '#4CAF50' : '#EF4444';
- 
+
+  const handleCallContact = async (phoneNumber: string) => {
+    try {
+      const phoneUrl = `tel:${phoneNumber}`;
+      const supported = await Linking.canOpenURL(phoneUrl);
+      
+      if (supported) {
+        await Linking.openURL(phoneUrl);
+        if (Platform.OS === 'android') {
+          ToastAndroid.show(`Calling ${phoneNumber}`, ToastAndroid.SHORT);
+        }
+      } else {
+        Alert.alert('Error', 'Cannot open phone app on this device');
+      }
+    } catch (error) {
+      console.error('Error opening phone app:', error);
+      Alert.alert('Error', 'Failed to open phone app');
+    }
+  };
 
   const reverseGeocode = async (latitude: number, longitude: number): Promise<string | null> => {
     try {
@@ -62,75 +82,80 @@ export default function Main() {
   };
 
   useEffect(() => {
-   let isMounted = true;
-  let watchSubscription: Location.LocationSubscription | null = null;
-  const startWatchingLocation = async () => {
-    try {
-      // Request permissions if not already granted
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required for safety features.');
-        return;
-      }
-      // First, get the current location immediately
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-      
-      if (isMounted) {
-        setCurrentLocation({ latitude, longitude });
-        const address = await reverseGeocode(latitude, longitude);
-        setCurrentAddress(address || 'Location unavailable');
-      }
-      // Then start watching for updates
-      watchSubscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.Balanced,
-          timeInterval: 2 * 60 * 1000, // 2 minutes in milliseconds
-          
-        },
-        async (location) => {
-          if (!isMounted) return;
-          
-          const { latitude, longitude } = location.coords;
-          console.log('Location updated at:', new Date().toLocaleTimeString());
-          
+    let isMounted = true;
+    let watchSubscription: Location.LocationSubscription | null = null;
+    
+    const startWatchingLocation = async () => {
+      try {
+        // Request permissions if not already granted
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Location permission is required for safety features.');
+          return;
+        }
+        
+        // First, get the current location immediately
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+        
+        if (isMounted) {
           setCurrentLocation({ latitude, longitude });
-          
-          // Update address
           const address = await reverseGeocode(latitude, longitude);
           setCurrentAddress(address || 'Location unavailable');
-          
-          // Show toast on Android when location updates
-          if (Platform.OS === 'android') {
-            ToastAndroid.show('Location updated', ToastAndroid.SHORT);
-          }
         }
-      );
-      if (isMounted) {
-        setLocationSubscription(watchSubscription);
+        
+        // Then start watching for updates
+        watchSubscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 2 * 60 * 1000, // 2 minutes in milliseconds
+          },
+          async (location) => {
+            if (!isMounted) return;
+            
+            const { latitude, longitude } = location.coords;
+            console.log('Location updated at:', new Date().toLocaleTimeString());
+            
+            setCurrentLocation({ latitude, longitude });
+            
+            // Update address
+            const address = await reverseGeocode(latitude, longitude);
+            setCurrentAddress(address || 'Location unavailable');
+            
+            // Show toast on Android when location updates
+            if (Platform.OS === 'android') {
+              ToastAndroid.show('Location updated', ToastAndroid.SHORT);
+            }
+          }
+        );
+        
+        if (isMounted) {
+          setLocationSubscription(watchSubscription);
+        }
+      } catch (error) {
+        console.error('Error watching location:', error);
+        Alert.alert('Error', 'Failed to start location updates');
       }
-    } catch (error) {
-      console.error('Error watching location:', error);
-      Alert.alert('Error', 'Failed to start location updates');
-    }
-  };
-  if (isSafetyActive) {
-    startWatchingLocation();
-  } else if (locationSubscription) {
-    // Clean up subscription when safety mode is turned off
-    locationSubscription.remove();
-    setLocationSubscription(null);
-  }
-  // Cleanup function
-  return () => {
-    isMounted = false;
-    if (watchSubscription) {
-      watchSubscription.remove();
-    }
-    if (locationSubscription) {
+    };
+    
+    if (isSafetyActive) {
+      startWatchingLocation();
+    } else if (locationSubscription) {
+      // Clean up subscription when safety mode is turned off
       locationSubscription.remove();
+      setLocationSubscription(null);
     }
-  };
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (watchSubscription) {
+        watchSubscription.remove();
+      }
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
   }, [isSafetyActive]);
 
   const sendSosAlert = async () => {
@@ -162,17 +187,21 @@ export default function Main() {
       Alert.alert('Error', 'Network error occurred while sending SOS');
     }
   };
+
   const handleSOS = () => {
     console.log('SOS button pressed');
     sendSosAlert();
   };
+
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+  
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
   return (
     <ScrollView>
       <View style={styles.container}>
@@ -181,13 +210,11 @@ export default function Main() {
           <Text style={styles.greetingText}>
             Stay safe, {text || 'User'}!
           </Text>
-          <Text>
-              {currentTime}
-          </Text>
+          <Text>{currentTime}</Text>
         </View>
         
         {/* Safety Mode */}
-        <View style={[styles.safetyContainer, ]}>
+        <View style={styles.safetyContainer}>
           <View style={styles.safetyContent}>
             <Text style={[styles.safetyText, { color: safetyStatusTextColor }]}>
               {safetyStatusText}
@@ -214,7 +241,7 @@ export default function Main() {
           </View>
         )}
 
-        {/* SOS button - Add your SOS implementation here */}
+        {/* SOS button */}
         <TouchableOpacity 
           style={{ 
             alignItems: 'center', 
@@ -254,8 +281,8 @@ export default function Main() {
             </Text>
           </View>
         </TouchableOpacity>
-        {/* Risk status */}
-        {/* Emergency contacts */}
+
+        {/* Emergency contacts section */}
         <View style={{ marginTop: 20, paddingHorizontal: 20 }}>
           <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Emergency Contacts</Text>
           <Text style={{ fontSize: 14, color: '#666' }}>Add your emergency contacts here to quickly alert them in case of emergency.</Text>
@@ -266,6 +293,8 @@ export default function Main() {
           >
             <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>+ Add Contact</Text>
           </TouchableOpacity>
+
+          {/* Add Contact Modal */}
           <Modal
             animationType="fade"
             transparent={true}
@@ -363,36 +392,43 @@ export default function Main() {
           </Modal>
         </View>
         
+        {/* Contacts List */}
         <View style={{ padding: 20 }}>
           <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Emergency Contacts:</Text>
           {emergencyContacts.length === 0 ? (
             <Text style={{ color: 'gray' }}>No contacts added yet</Text>
           ) : (
             emergencyContacts.map((contact, index) => (
-              <View key={index} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ padding: 10, backgroundColor: 'transparent', borderRadius: 8, marginBottom: 5, flex: 1 }}>
+              <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                <View style={{ padding: 10, backgroundColor: 'transparent', borderRadius: 8, flex: 1 }}>
                   <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{contact.name}</Text>
                   <Text style={{ color: '#4d4d4d97', fontSize: 14 }}>+91 {contact.number}</Text>
                 </View>
                 
-                <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'flex-end', marginTop: 5 }}>
+                <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'flex-end' }}>
                   <TouchableOpacity 
-                    style={{ padding: 5, borderRadius: 4, marginRight: 5 }}
-                    onPress={() => {
-                      // Handle call contact
-                      ToastAndroid.show(`Calling ${contact.name}`, ToastAndroid.SHORT);
+                    style={{ 
+                      padding: 8, 
+                      backgroundColor: '#007AFF', 
+                      borderRadius: 8,
+                      width: 40,
+                      height: 40,
+                      justifyContent: 'center',
+                      alignItems: 'center'
                     }}
-                    >
-                    <Ionicons name="call" size={16} color="#007AFF" />
+                    onPress={() => handleCallContact(contact.number)}
+                  >
+                    <Ionicons name="call" size={20} color="white" />
                   </TouchableOpacity>
+                  
                   {!['181', '100'].includes(contact.number) && (
                     <TouchableOpacity 
                       style={{ 
-                        padding: 5, 
+                        padding: 8, 
                         backgroundColor: '#FF3B30', 
-                        borderRadius: 4,
-                        width: 30,
-                        height: 30,
+                        borderRadius: 8,
+                        width: 40,
+                        height: 40,
                         justifyContent: 'center',
                         alignItems: 'center'
                       }}
@@ -401,7 +437,7 @@ export default function Main() {
                         ToastAndroid.show(`Contact ${contact.name} removed successfully`, ToastAndroid.LONG);
                       }}
                     >
-                      <Ionicons name="trash" size={16} color="white" />
+                      <Ionicons name="trash" size={20} color="white" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -501,7 +537,6 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   greetings: {
-   
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -511,14 +546,11 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 24,
     fontWeight: 'bold',
-    
-
   },
   safetyContainer: {
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
-    
   },
   safetyContent: {
     flexDirection: 'row',
