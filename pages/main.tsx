@@ -64,6 +64,105 @@ export default function Main() {
     }
   };
 
+ const handleSafetyToggle = async (newValue: boolean) => {
+    setIsSafetyActive(newValue);
+    
+    // Send SMS when safety mode is turned ON
+    if (newValue) {
+      const name = text || 'User';
+      const location = currentAddress || 'Location unavailable';
+      const currentTime = new Date().toLocaleString();
+      const messageBody = `${name} switched their location on, they might be in trouble,\nLocation: ${location}\nTime: ${currentTime}\nCalling them might help`;
+      
+      try {
+        // Send SMS to ALL emergency contacts
+        for (const contact of emergencyContacts) {
+          // Format phone number with +91 prefix for India
+          const phoneNumber = contact.number.startsWith('+91') 
+            ? contact.number 
+            : `+91${contact.number}`;
+          
+          // Construct SMS URL
+          const url = `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`;
+          
+          // Check if device supports SMS
+          const supported = await Linking.canOpenURL(url);
+          
+          if (supported) {
+            await Linking.openURL(url);
+            console.log(`Safety mode SMS opened for ${contact.name}: ${phoneNumber}`);
+          } else {
+            console.error(`SMS not supported for ${contact.name}`);
+          }
+          
+          // Small delay between contacts
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        // Success feedback
+        ToastAndroid.show(
+          `Safety mode alert sent to ${emergencyContacts.length} contacts!`, 
+          ToastAndroid.LONG
+        );
+        
+      } catch (error) {
+        console.error('Safety mode SMS Error:', error);
+        Alert.alert(
+          'SMS Error', 
+          'Failed to open SMS app. Please check your device settings.'
+        );
+      }
+    }
+  };
+
+ const handleSOSsms = async () => {
+  console.log('SOS SMS button pressed');
+  
+  const name = text || 'User';
+  const location = currentAddress || 'Location unavailable';
+  const currentTime = new Date().toLocaleString();
+  const messageBody = `🚨 SOS ALERT\n${name} needs help.\nLocation: ${location}\nTime: ${currentTime}`;
+  
+  try {
+    // Send SMS to ALL emergency contacts
+    for (const contact of emergencyContacts) {
+      // Format phone number with +91 prefix for India
+      const phoneNumber = contact.number.startsWith('+91') 
+        ? contact.number 
+        : `+91${contact.number}`;
+      
+      // Construct SMS URL using the correct format: sms:NUMBER?body=MESSAGE
+      const url = `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`;
+      
+      // Check if device supports SMS
+      const supported = await Linking.canOpenURL(url);
+      
+      if (supported) {
+        await Linking.openURL(url);
+        console.log(`SMS opened for ${contact.name}: ${phoneNumber}`);
+      } else {
+        console.error(`SMS not supported for ${contact.name}`);
+      }
+      
+      // Small delay between contacts to prevent overwhelming the SMS app
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    // Success feedback
+    ToastAndroid.show(
+      `SOS sent to ${emergencyContacts.length} contacts!`, 
+      ToastAndroid.LONG
+    );
+    
+  } catch (error) {
+    console.error('SMS Error:', error);
+    Alert.alert(
+      'SMS Error', 
+      'Failed to open SMS app. Please check your device settings.'
+    );
+  }
+};
+
   const reverseGeocode = async (latitude: number, longitude: number): Promise<string | null> => {
     try {
       const location: LocationData = { latitude, longitude };
@@ -158,41 +257,6 @@ export default function Main() {
     };
   }, [isSafetyActive]);
 
-  const sendSosAlert = async () => {
-    try {
-      const response = await fetch('http://192.168.1.12:3000/api/send-sos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          emergencyContacts: emergencyContacts,
-          name: text || 'User',
-          location: currentAddress || 'Location unavailable',
-          currentTime: new Date().toLocaleString()
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        console.log(`SOS sent to ${data.messagesSent} contacts`);
-        ToastAndroid.show(`Alert sent to ${data.messagesSent} contacts!`, ToastAndroid.LONG);
-      } else {
-        console.error('Failed to send SOS:', data.error);
-        Alert.alert('Error', 'Failed to send SOS alert');
-      }
-    } catch (error) {
-      console.error('Network error:', error);
-      Alert.alert('Error', 'Network error occurred while sending SOS');
-    }
-  };
-
-  const handleSOS = () => {
-    console.log('SOS button pressed');
-    sendSosAlert();
-  };
-
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   
   useEffect(() => {
@@ -221,7 +285,7 @@ export default function Main() {
             </Text>
             <Switcher1 
               isChecked={isSafetyActive} 
-              onToggle={setIsSafetyActive} 
+              onToggle={handleSafetyToggle} 
             />
           </View>
         </View>
@@ -241,13 +305,13 @@ export default function Main() {
           </View>
         )}
 
-        {/* SOS button */}
+        {/* SOS SMS button */}
         <TouchableOpacity 
           style={{ 
             alignItems: 'center', 
             marginTop: 20 
           }}
-          onPress={handleSOS}
+          onPress={handleSOSsms}
         >
           <View style={{ 
             backgroundColor: '#ff4757', 
