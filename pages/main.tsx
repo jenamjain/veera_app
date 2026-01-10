@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, ToastAndroid, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, ToastAndroid, Linking, ActivityIndicator } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
-import Switcher1 from '../components/Switcher1'; // Adjust path as needed
+import Switcher1 from '../components/Switcher1';
 import { LocationGeocodedAddress } from 'expo-location';
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons } from '@expo/vector-icons';
+import WomenSafetyApiService, { RiskAssessmentData, RiskAssessmentResponse, SOSRequest } from '../services/api';
+import DataCollectionService from '../services/dataCollector';
 
 type RouteParams = {
   text?: string;
@@ -34,6 +36,12 @@ export default function Main() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
   
+  // Backend integration states
+  const [riskAssessment, setRiskAssessment] = useState<RiskAssessmentResponse | null>(null);
+  const [isAssessingRisk, setIsAssessingRisk] = useState(false);
+  const [isSendingSOS, setIsSendingSOS] = useState(false);
+  const [lastAssessmentTime, setLastAssessmentTime] = useState<Date | null>(null);
+  
   const localTime = new Date().toLocaleTimeString();
   
   const isValidIndianPhoneNumber = (phone: string): boolean => {
@@ -45,18 +53,153 @@ export default function Main() {
   const safetyStatusText = isSafetyActive ? 'Safety Mode: Active' : 'Safety Mode: Inactive';
   const safetyStatusTextColor = isSafetyActive ? '#4CAF50' : '#EF4444';
 
+  // Enhanced risk assessment function
+  const assessCurrentRisk = async () => {
+    console.log('🔍 assessCurrentRisk called');
+    console.log('📍 currentLocation:', currentLocation);
+    console.log('👤 text:', text);
+    
+    if (!currentLocation || !text) {
+      console.log('❌ Location or user info not available for risk assessment');
+      console.log('currentLocation exists:', !!currentLocation);
+      console.log('text exists:', !!text);
+      return;
+    }
+
+    console.log('✅ Starting risk assessment...');
+    setIsAssessingRisk(true);
+    
+    try {
+      console.log('🔄 Collecting data for ML model...');
+      
+      // Convert LocationData to LocationObject format for DataCollectionService
+      const locationObject = {
+        coords: {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+          altitude: null,
+          accuracy: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null
+        },
+        timestamp: Date.now()
+      };
+      
+      // Collect all required data for ML model
+      const riskData = await DataCollectionService.collectRiskAssessmentData(
+        'user_123', // In a real app, this would come from authentication
+        text,
+        locationObject, // Proper LocationObject format
+        emergencyContacts
+      );
+
+      console.log('📊 Risk data collected:', riskData);
+
+      // Validate data before sending
+      if (!DataCollectionService.validateRiskAssessmentData(riskData)) {
+        throw new Error('Invalid risk assessment data');
+      }
+
+      console.log('📡 Sending risk assessment data to backend...');
+      
+      // Call backend API for risk assessment
+      const response = await WomenSafetyApiService.assessRisk(riskData);
+      
+      console.log('🎯 Risk assessment response:', response);
+      setRiskAssessment(response);
+      setLastAssessmentTime(new Date());
+      
+      // Show risk level to user
+      Alert.alert(
+        'Risk Assessment Complete',
+        `Risk Level: ${response.riskLevel}\nRisk Score: ${response.riskScore}/100`,
+        [{ text: 'OK', style: 'default' }]
+      );
+
+      // Auto-trigger SOS if high risk
+      if (response.riskLevel.toUpperCase() === 'HIGH') {
+        Alert.alert(
+          'High Risk Detected!',
+          'Your current location has been assessed as high risk. Would you like to send an SOS alert?',
+          [
+            { text: 'No', style: 'cancel' },
+            { text: 'Send SOS', onPress: () => handleSOSsms() }
+          ]
+        );
+      }
+
+    } catch (error) {
+      console.error('Risk assessment failed:', error);
+      Alert.alert(
+        'Assessment Failed',
+        'Unable to complete risk assessment. Please check your connection and try again.'
+      );
+    } finally {
+      setIsAssessingRisk(false);
+    }
+  };
+
+  // Enhanced SOS function using backend API
+  const handleEnhancedSOS = async () => {
+    if (!currentLocation || !text) {
+      Alert.alert('Error', 'Location or user information not available');
+      return;
+    }
+
+    setIsSendingSOS(true);
+    try {
+      console.log('Sending enhanced SOS alert...');
+      
+      const sosRequest: SOSRequest = {
+        emergencyContacts,
+        name: text,
+        location: WomenSafetyApiService.formatLocationString(
+          currentLocation.latitude,
+          currentLocation.longitude
+        ),
+        currentTime: WomenSafetyApiService.getCurrentTimeString()
+      };
+
+      const response = await WomenSafetyApiService.sendSOSAlert(sosRequest);
+      
+      if (response.success) {
+        ToastAndroid.show(
+          `SOS alert sent to ${response.messagesSent} contacts via SMS!`,
+          ToastAndroid.LONG
+        );
+        
+        Alert.alert(
+          'SOS Alert Sent',
+          `Successfully sent SOS alert to ${response.messagesSent} emergency contacts.`,
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else {
+        throw new Error(response.error || 'Unknown error');
+      }
+
+    } catch (error) {
+      console.error('Enhanced SOS failed:', error);
+      Alert.alert(
+        'SOS Failed',
+        'Failed to send SOS alert via backend. Falling back to SMS app...',
+        [{ text: 'OK', onPress: () => handleSOSsms() }]
+      );
+    } finally {
+      setIsSendingSOS(false);
+    }
+  };
+
   const handleCallContact = async (phoneNumber: string) => {
     try {
       const phoneUrl = `tel:${phoneNumber}`;
-      const supported = await Linking.canOpenURL(phoneUrl);
+      console.log(`Trying to call ${phoneNumber}`);
       
-      if (supported) {
-        await Linking.openURL(phoneUrl);
-        if (Platform.OS === 'android') {
-          ToastAndroid.show(`Calling ${phoneNumber}`, ToastAndroid.SHORT);
-        }
-      } else {
-        Alert.alert('Error', 'Cannot open phone app on this device');
+      // Try opening directly without canOpenURL check
+      await Linking.openURL(phoneUrl);
+      
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(`Calling ${phoneNumber}`, ToastAndroid.SHORT);
       }
     } catch (error) {
       console.error('Error opening phone app:', error);
@@ -65,7 +208,27 @@ export default function Main() {
   };
 
  const handleSafetyToggle = async (newValue: boolean) => {
+    console.log('🔄 Safety toggle called with:', newValue);
+    console.log('📍 Current location available:', !!currentLocation);
+    
     setIsSafetyActive(newValue);
+    
+    // Start risk assessment when safety mode is turned ON
+    if (newValue && currentLocation) {
+      console.log('🚀 Safety mode ON and location available, starting risk assessment...');
+      // Assess risk immediately when safety mode is activated
+      assessCurrentRisk();
+      
+      // Set up periodic risk assessment
+      const assessmentInterval = setInterval(() => {
+        if (isSafetyActive && currentLocation) {
+          assessCurrentRisk();
+        }
+      }, 5 * 60 * 1000); // Every 5 minutes
+      
+      // Store interval ID for cleanup
+      (riskAssessment as any).__interval = assessmentInterval;
+    }
     
     // Send SMS when safety mode is turned ON
     if (newValue) {
@@ -82,17 +245,40 @@ export default function Main() {
             ? contact.number 
             : `+91${contact.number}`;
           
-          // Construct SMS URL
-          const url = `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`;
+          // Try different SMS URL formats for better compatibility
+          const smsFormats = [
+            `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`,
+            `sms:${phoneNumber}&body=${encodeURIComponent(messageBody)}`,
+            `sms:${phoneNumber};body=${encodeURIComponent(messageBody)}`
+          ];
           
-          // Check if device supports SMS
-          const supported = await Linking.canOpenURL(url);
+          let smsOpened = false;
           
-          if (supported) {
-            await Linking.openURL(url);
-            console.log(`Safety mode SMS opened for ${contact.name}: ${phoneNumber}`);
-          } else {
-            console.error(`SMS not supported for ${contact.name}`);
+          for (const url of smsFormats) {
+            try {
+              console.log(`Trying SMS URL for ${contact.name}: ${url}`);
+              // Try opening directly without canOpenURL check
+              await Linking.openURL(url);
+              console.log(`SMS opened for ${contact.name}: ${phoneNumber}`);
+              smsOpened = true;
+              break; // Exit loop if successful
+            } catch (urlError) {
+              console.log(`SMS URL format failed: ${url}`, urlError);
+              continue; // Try next format
+            }
+          }
+          
+          if (!smsOpened) {
+            console.error(`All SMS formats failed for ${contact.name}: ${phoneNumber}`);
+            // Try opening SMS app without body as fallback
+            try {
+              const fallbackUrl = `sms:${phoneNumber}`;
+              console.log(`Trying fallback SMS URL for ${contact.name}: ${fallbackUrl}`);
+              await Linking.openURL(fallbackUrl);
+              console.log(`Fallback SMS opened for ${contact.name}: ${phoneNumber}`);
+            } catch (fallbackError) {
+              console.error(`Fallback SMS also failed for ${contact.name}`, fallbackError);
+            }
           }
           
           // Small delay between contacts
@@ -131,17 +317,40 @@ export default function Main() {
         ? contact.number 
         : `+91${contact.number}`;
       
-      // Construct SMS URL using the correct format: sms:NUMBER?body=MESSAGE
-      const url = `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`;
+      // Try different SMS URL formats for better compatibility
+      const smsFormats = [
+        `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`,
+        `sms:${phoneNumber}&body=${encodeURIComponent(messageBody)}`,
+        `sms:${phoneNumber};body=${encodeURIComponent(messageBody)}`
+      ];
       
-      // Check if device supports SMS
-      const supported = await Linking.canOpenURL(url);
+      let smsOpened = false;
       
-      if (supported) {
-        await Linking.openURL(url);
-        console.log(`SMS opened for ${contact.name}: ${phoneNumber}`);
-      } else {
-        console.error(`SMS not supported for ${contact.name}`);
+      for (const url of smsFormats) {
+        try {
+          console.log(`Trying SOS SMS URL for ${contact.name}: ${url}`);
+          // Try opening directly without canOpenURL check
+          await Linking.openURL(url);
+          console.log(`SOS SMS opened for ${contact.name}: ${phoneNumber}`);
+          smsOpened = true;
+          break; // Exit loop if successful
+        } catch (urlError) {
+          console.log(`SOS SMS URL format failed: ${url}`, urlError);
+          continue; // Try next format
+        }
+      }
+      
+      if (!smsOpened) {
+        console.error(`All SOS SMS formats failed for ${contact.name}: ${phoneNumber}`);
+        // Try opening SMS app without body as fallback
+        try {
+          const fallbackUrl = `sms:${phoneNumber}`;
+          console.log(`Trying SOS fallback SMS URL for ${contact.name}: ${fallbackUrl}`);
+          await Linking.openURL(fallbackUrl);
+          console.log(`SOS fallback SMS opened for ${contact.name}: ${phoneNumber}`);
+        } catch (fallbackError) {
+          console.error(`SOS fallback SMS also failed for ${contact.name}`, fallbackError);
+        }
       }
       
       // Small delay between contacts to prevent overwhelming the SMS app
@@ -180,29 +389,68 @@ export default function Main() {
     }
   };
 
+  // Auto-assess risk when safety mode is activated and location is available
+  useEffect(() => {
+    if (isSafetyActive && currentLocation && !isAssessingRisk) {
+      // Assess risk immediately when safety mode is activated
+      assessCurrentRisk();
+      
+      // Set up periodic risk assessment
+      const assessmentInterval = setInterval(() => {
+        if (isSafetyActive && currentLocation) {
+          assessCurrentRisk();
+        }
+      }, 5 * 60 * 1000); // Every 5 minutes
+
+      return () => clearInterval(assessmentInterval);
+    }
+  }, [isSafetyActive, currentLocation]);
+
   // Fetch initial location on component mount
   useEffect(() => {
     const fetchInitialLocation = async () => {
       try {
+        console.log('Requesting location permissions...');
         // Request permissions if not already granted
         const { status } = await Location.requestForegroundPermissionsAsync();
+        console.log('Location permission status:', status);
+        
         if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Location permission is required for safety features.');
+          console.log('Permission denied, using default location');
+          // Use default location for testing
+          const defaultLat = 12.9716; // Bangalore
+          const defaultLng = 77.5946;
+          setCurrentLocation({ latitude: defaultLat, longitude: defaultLng });
+          setCurrentAddress('Default location (Bangalore) - Testing mode');
           return;
         }
         
+        console.log('Getting current location...');
         // Get the current location immediately
-        const location = await Location.getCurrentPositionAsync({});
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
         const { latitude, longitude } = location.coords;
         
+        console.log('Location obtained:', { latitude, longitude });
         setCurrentLocation({ latitude, longitude });
-        const address = await reverseGeocode(latitude, longitude);
-        setCurrentAddress(address || 'Location unavailable');
         
-        console.log('Initial location fetched on component mount');
-      } catch (error) {
+        console.log('Reverse geocoding...');
+        const address = await reverseGeocode(latitude, longitude);
+        setCurrentAddress(address || 'Location available but address not found');
+        
+        console.log('Initial location fetched successfully:', address);
+      } catch (error: any) {
         console.error('Error fetching initial location:', error);
-        setCurrentAddress('Location unavailable');
+        
+        // AUTOMATICALLY use default location for testing
+        console.log('Location failed, using default location for testing');
+        const defaultLat = 12.9716; // Bangalore
+        const defaultLng = 77.5946;
+        setCurrentLocation({ latitude: defaultLat, longitude: defaultLng });
+        setCurrentAddress('Default location (Bangalore) - Testing mode');
+        
+        console.log('Using default location:', { defaultLat, defaultLng });
       }
     };
     
@@ -286,6 +534,15 @@ export default function Main() {
     return () => clearInterval(interval);
   }, []);
 
+  const getRiskLevelColor = (level: string) => {
+    switch (level?.toUpperCase()) {
+      case 'HIGH': return '#EF4444';
+      case 'MEDIUM': return '#F59E0B';
+      case 'LOW': return '#10B981';
+      default: return '#6B7280';
+    }
+  };
+
   return (
     <ScrollView>
       <View style={styles.container}>
@@ -308,6 +565,43 @@ export default function Main() {
               onToggle={handleSafetyToggle} 
             />
           </View>
+        </View>
+
+        {/* Risk Assessment Display - positioned based on safety mode */}
+        {riskAssessment && (
+          <View style={[styles.riskCard, { borderLeftColor: getRiskLevelColor(riskAssessment.riskLevel) }]}>
+            <View style={styles.riskHeader}>
+              <Ionicons name="shield-checkmark" size={24} color={getRiskLevelColor(riskAssessment.riskLevel)} />
+              <Text style={styles.riskTitle}>Risk Assessment</Text>
+            </View>
+            <Text style={[styles.riskLevel, { color: getRiskLevelColor(riskAssessment.riskLevel) }]}>
+              {riskAssessment.riskLevel.toUpperCase()}
+            </Text>
+            <Text style={styles.riskScore}>Score: {riskAssessment.riskScore}/100</Text>
+            {lastAssessmentTime && (
+              <Text style={styles.assessmentTime}>
+                Last assessed: {lastAssessmentTime.toLocaleTimeString()}
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Debug: Manual Risk Assessment Button */}
+        <View style={{ margin: 15, alignItems: 'center' }}>
+          <TouchableOpacity 
+            style={{ 
+              backgroundColor: '#2196F3', 
+              padding: 10, 
+              borderRadius: 8,
+              paddingHorizontal: 20
+            }}
+            onPress={assessCurrentRisk}
+            disabled={isAssessingRisk}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>
+              {isAssessingRisk ? 'Assessing...' : '🔍 Test Risk Assessment'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Display location and time */}
@@ -674,5 +968,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     fontFamily: 'monospace',
+  },
+  // Risk assessment styles
+  riskCard: {
+    backgroundColor: '#FFFFFF',
+    margin: 15,
+    padding: 15,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  riskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  riskTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+    color: '#333',
+  },
+  riskLevel: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  riskScore: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+  },
+  assessmentTime: {
+    fontSize: 12,
+    color: '#999',
   },
 });

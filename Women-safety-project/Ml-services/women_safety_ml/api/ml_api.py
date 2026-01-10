@@ -2,9 +2,13 @@ from fastapi import FastAPI, HTTPException
 import os
 import joblib
 import pandas as pd
+import sys
 
-from women_safety_ml.api.schemas import RiskRequest
-from women_safety_ml.utils.risk_utils import calculate_risk
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from api.schemas import RiskRequest
+from utils.risk_utils import calculate_risk
 
 app = FastAPI()
 

@@ -13,7 +13,10 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to provide safety features and emergency alerts."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,13 +24,25 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.mrinal_agrawal21.veera",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
-    ]
+      "expo-router",
+      "expo-location"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9962b1c3-ffc3-4018-bbdf-3d7ba9b5ba35"
+      }
+    }
   }
 }

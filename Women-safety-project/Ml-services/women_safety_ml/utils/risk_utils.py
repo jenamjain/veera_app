@@ -23,7 +23,6 @@ def calculate_risk(row: dict, high_prob: float):
     # -----------------------------
     # ML-DRIVEN SCORE
     # -----------------------------
-    high_prob = prob[2]
     score = int(high_prob * 100)
 
     # Environmental boost
