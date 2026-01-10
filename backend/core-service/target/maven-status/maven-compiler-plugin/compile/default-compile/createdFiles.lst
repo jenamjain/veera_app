@@ -1,0 +1,13 @@
+com\example\Women\Safety\Services\RiskService.class
+com\example\Women\Safety\Entity\Prediction.class
+com\example\Women\Safety\Services\MlClientService.class
+com\example\Women\Safety\Dto\MlRiskRequest.class
+com\example\Women\Safety\Entity\RiskLevel.class
+com\example\Women\Safety\Controller\SosController.class
+com\example\Women\Safety\Dto\MlRiskResponse.class
+com\example\Women\Safety\Entity\Incident.class
+com\example\Women\Safety\Repo\IncidentRepo.class
+com\example\Women\Safety\Dto\FrontendRiskRequest.class
+com\example\Women\Safety\WomenSafetyApplication.class
+com\example\Women\Safety\Dto\SosResponse.class
+com\example\Women\Safety\Services\IncidentService.class

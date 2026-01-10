@@ -1,0 +1,13 @@
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Dto\SosResponse.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Entity\RiskLevel.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\WomenSafetyApplication.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Services\IncidentService.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Dto\MlRiskRequest.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Repo\IncidentRepo.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Services\RiskService.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Services\MlClientService.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Entity\Incident.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Entity\Prediction.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Dto\FrontendRiskRequest.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Controller\SosController.java
+D:\React-Native\veera_app\backend\core-service\src\main\java\com\example\Women\Safety\Dto\MlRiskResponse.java

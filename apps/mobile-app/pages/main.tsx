@@ -5,8 +5,8 @@ import * as Location from 'expo-location';
 import Switcher1 from '../components/Switcher1';
 import { LocationGeocodedAddress } from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import WomenSafetyApiService, { RiskAssessmentData, RiskAssessmentResponse, SOSRequest } from '../services/api';
-import DataCollectionService from '../services/dataCollector';
+import WomenSafetyApiService, { RiskAssessmentData, RiskAssessmentResponse, SOSRequest } from '../../../services/api';
+import DataCollectionService from '../../../services/dataCollector';
 
 type RouteParams = {
   text?: string;
