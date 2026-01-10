@@ -49,76 +49,11 @@ Admin Dashboard & Alerts
 ## 📁 Project Structure (Monorepo)
 
 veera_app/
-│
-├── apps/
-│   ├── mobile-app/                  # React Native (Expo) mobile application
-│   │   ├── App.tsx
-│   │   ├── app.json
-│   │   ├── index.ts
-│   │   ├── assets/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── types/
-│   │   ├── package.json
-│   │   ├── package-lock.json
-│   │   └── tsconfig.json
-│   │
-│   └── dashboard/                   # Admin dashboard (React + Vite)
-│       ├── src/
-│       │   ├── components/
-│       │   ├── pages/
-│       │   ├── hooks/
-│       │   ├── data/
-│       │   ├── lib/
-│       │   ├── types/
-│       │   ├── App.tsx
-│       │   └── main.tsx
-│       ├── public/
-│       ├── index.html
-│       ├── package.json
-│       ├── package-lock.json
-│       ├── tailwind.config.ts
-│       ├── vite.config.ts
-│       └── tsconfig.json
-│
-├── backend/
-│   ├── core-service/                # Java Spring Boot backend
-│   │   ├── src/
-│   │   │   ├── main/
-│   │   │   │   ├── java/
-│   │   │   │   │   └── com/example/Women/Safety/
-│   │   │   │   │       ├── Controller/
-│   │   │   │   │       ├── Services/
-│   │   │   │   │       ├── Repo/
-│   │   │   │   │       ├── Entity/
-│   │   │   │   │       └── Dto/
-│   │   │   │   └── resources/
-│   │   │   │       └── application.properties
-│   │   │   └── test/
-│   │   ├── pom.xml
-│   │   ├── mvnw
-│   │   └── mvnw.cmd
-│   │
-│   └── ml-service/                  # FastAPI ML inference service
-│       ├── api/
-│       │   ├── ml_api.py
-│       │   └── schemas.py
-│       ├── model/
-│       │   └── women_safety_xgb_model.pkl
-│       ├── utils/
-│       │   └── risk_utils.py
-│       ├── requirements.txt
-│       └── __init__.py
-│
+├── apps/        # Mobile + Dashboard
+├── backend/     # Java + ML services
 ├── docs/
-│   ├── archived/                    # Archived unused Node backend
-│   │   ├── node-backend-index.js
-│   │   ├── node-backend-package.json
-│   │   └── node-backend-package-lock.json
-│   │
-│   └── _old_dashboard_container/    # Old dashboard container (archived)
-│
 └── README.md
+
 
 
 
@@ -234,5 +169,6 @@ apps/dashboard/
 
 ### 📌 Note for Reviewers
 This repository was **restructured intentionally** to improve clarity, scalability, and ease of evaluation during the hackathon.
+
 
 
