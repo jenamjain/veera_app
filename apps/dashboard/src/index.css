@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* VEERA Design System - Government-grade Women Safety Dashboard */
+
+@layer base {
+  :root {
+    /* Soft neutral background - clean government UI */
+    --background: 220 20% 97%;
+    --foreground: 220 20% 10%;
+
+    /* Cards - clean white with subtle depth */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    /* Primary - Professional blue for government */
+    --primary: 220 70% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Soft neutral */
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 20% 20%;
+
+    /* Muted - Subtle backgrounds */
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 45%;
+
+    /* Accent - Light selection state */
+    --accent: 220 60% 95%;
+    --accent-foreground: 220 70% 40%;
+
+    /* Destructive - For errors */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 220 70% 45%;
+
+    --radius: 0.75rem;
+
+    /* Risk colors - only these for status indication */
+    --risk-high: 0 72% 51%;
+    --risk-medium: 45 93% 47%;
+    --risk-low: 142 71% 45%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 220 70% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 60% 95%;
+    --sidebar-accent-foreground: 220 70% 40%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 220 70% 45%;
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 220 15% 95%;
+
+    --card: 220 25% 12%;
+    --card-foreground: 220 15% 95%;
+
+    --popover: 220 25% 12%;
+    --popover-foreground: 220 15% 95%;
+
+    --primary: 220 70% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 220 15% 90%;
+
+    --muted: 220 20% 15%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 220 30% 20%;
+    --accent-foreground: 220 70% 65%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 220 70% 55%;
+
+    --risk-high: 0 72% 55%;
+    --risk-medium: 45 93% 55%;
+    --risk-low: 142 71% 50%;
+
+    --sidebar-background: 220 25% 10%;
+    --sidebar-foreground: 220 15% 90%;
+    --sidebar-primary: 220 70% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 30% 18%;
+    --sidebar-accent-foreground: 220 70% 65%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 220 70% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .risk-high {
+    @apply bg-[hsl(var(--risk-high))] text-white;
+  }
+  .risk-medium {
+    @apply bg-[hsl(var(--risk-medium))] text-white;
+  }
+  .risk-low {
+    @apply bg-[hsl(var(--risk-low))] text-white;
+  }
+  .risk-high-text {
+    color: hsl(var(--risk-high));
+  }
+  .risk-medium-text {
+    color: hsl(var(--risk-medium));
+  }
+  .risk-low-text {
+    color: hsl(var(--risk-low));
+  }
+}

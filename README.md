@@ -1,126 +1,174 @@
-# 🚨 Women Safety Risk Prediction System
+# 🚨 Veera – Women Safety Risk Prediction Platform
 
-An **end-to-end full‑stack Machine Learning project** that predicts **safety risk levels (Low / Medium / High)** for women based on location, time, and environmental factors. This project demonstrates the **complete ML lifecycle** — from dataset creation and model training to API deployment and frontend integration.
+Veera is a **full-stack, end-to-end Women Safety platform** designed to assess and predict safety risks in real time.  
+It combines **mobile technology, backend orchestration, machine learning, and an admin dashboard** to enable faster awareness and response.
 
----
-
-## 📌 Problem Statement
-
-Women’s safety is a critical concern, especially during night hours or in isolated areas. This project aims to provide **real-time risk assessment** using data-driven predictions so that users can be more aware of their surroundings.
+The system predicts **risk levels (Low / Medium / High)** based on contextual inputs and demonstrates a **complete production-style architecture**.
 
 ---
 
-## 🎯 Project Objectives
+## 🎯 Problem Statement
 
-* Predict safety risk level using ML
-* Build a reliable and realistic dataset
-* Expose predictions via REST API
-* Integrate ML model with frontend
-* Demonstrate a complete production-style ML workflow
+Women safety systems today often face:
+- Lack of real-time risk assessment
+- Delayed emergency response
+- No predictive intelligence
 
----
-
-### Tools
-
-* Google Maps API
-* Firebase
-* Google Cloud Console
-* Google Cloud Run
-* Google Colab (model training)
-* VS Code
-* GitHub
+**Veera addresses this gap by integrating ML-based risk prediction with a scalable backend and user-friendly applications.**
 
 ---
 
-## 🏗️ System Architecture
+## 🧠 Solution Overview
 
-```
-User Input (Frontend)
-        ↓
- FastAPI Backend
-        ↓
- Trained ML Model (.pkl)
-        ↓
- Risk Score + Risk Level
-        ↓
- Frontend Display
-```
+Veera is built as a **multi-service system**:
+
+- 📱 **Mobile App** – user interaction and data input
+- ⚙️ **Backend (Java Spring Boot)** – core logic and orchestration
+- 🤖 **ML Service (FastAPI)** – risk prediction engine
+- 📊 **Admin Dashboard** – monitoring and visualization
+
+Each component is **independent, modular, and scalable**.
 
 ---
 
-## 🚀 API Endpoints
+## 🏗️ High-Level Architecture
 
-### Health Check
+Mobile App
+↓
+Java Spring Boot Backend
+↓
+FastAPI ML Service
+↓
+Risk Prediction (Low / Medium / High)
+↓
+Admin Dashboard & Alerts
 
-```
-GET /
-```
-
-### Predict Risk
-
-```
-POST /predict-risk
-```
-
-**Request Body (JSON)**
-
-```json
-{
-  "latitude": 23.25,
-  "longitude": 77.41,
-  "hour": 22,
-  "crime_density": 4.2,
-  "poi_count": 2,
-  "is_night": 1,
-  "is_isolated": 1
-}
-```
-
-**Response**
-
-```json
-{
-  "risk_score": 87,
-  "risk_level": "HIGH"
-}
-```
 
 ---
 
-## 🧪 Model Performance
+## 📁 Project Structure (Monorepo)
 
-* Accuracy: ~95%+
-* Class-balanced predictions
-* Tested with random and edge cases
+veera_app/
+├── apps/        # Mobile + Dashboard
+├── backend/     # Java + ML services
+├── docs/
+└── README.md
 
----
 
 
-## 🔮 Future Improvements
 
-* Real crime data integration
-* Live GPS tracking
-* SOS alerts
-* Cloud deployment
-* Mobile app integration
+This structure was intentionally designed to make **team contributions and system flow clear**.
 
 ---
 
-## 👥 Team Contribution
-RIDDHI MOONAT: Product Strategy & Frontend (Dashboard)
+## 📱 Mobile Application
 
-MRINAL AGRAWAL: APP Developer
+- **Framework**: React Native (Expo)
+- **Role**:
+  - User entry point
+  - Sends contextual and safety-related inputs
+  - Interacts with backend APIs
 
-JENAM JAIN: AI/ML Engineer
+📂 Location:
 
-PURWANSH WADEKAR: Backend Lead
-
----
-
-## 📜 License
-
-This project is for educational and demonstration purposes.
+apps/mobile-app/
 
 ---
 
-⭐ If you like this project, don’t forget to star the repo!
+## ⚙️ Backend – Core Service
+
+- **Framework**: Java Spring Boot
+- **Role**:
+  - Central orchestration layer
+  - Receives requests from mobile app
+  - Communicates with ML service
+  - Handles SOS and incident workflows
+  - Serves data to the dashboard
+
+📂 Location:
+
+backend/core-service/
+
+---
+
+## 🤖 Machine Learning Service
+
+- **Framework**: Python + FastAPI
+- **Model**: XGBoost classifier
+- **Role**:
+  - Accepts structured risk inputs from backend
+  - Loads trained model
+  - Predicts safety risk level
+  - Returns prediction to backend via API
+
+📂 Location:
+
+backend/ml-service/
+
+
+This ML service is deployed as a **real API**, not just a notebook.
+
+---
+
+## 📊 Admin Dashboard
+
+- **Framework**: React + Vite + Tailwind
+- **Role**:
+  -
+  Visualize incidents and predictions
+  - Monitor system activity
+  - Admin / authority interface
+
+📂 Location:
+
+apps/dashboard/
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-----|-----------|
+| Mobile App | React Native, Expo |
+| Dashboard | React, Vite, Tailwind CSS |
+| Backend | Java, Spring Boot |
+| ML Service | Python, FastAPI |
+| ML Model | XGBoost |
+| Architecture | Microservices, REST APIs |
+
+---
+
+## 🏆 Key Highlights for Judges
+
+- ✅ Complete end-to-end system
+- ✅ Clean separation of concerns
+- ✅ Real ML model served via API
+- ✅ Scalable microservice architecture
+- ✅ Industry-standard monorepo structure
+- ✅ Clear team contribution boundaries
+
+---
+
+## 🚀 Future Enhancements
+
+- Real-time GPS tracking
+- Live model retraining
+- Push notifications for emergencies
+- Integration with external emergency services
+
+---
+
+## 👥 Team Contributions
+
+- **Mobile App** – User-facing application
+- **Backend** – Core orchestration and logic
+- **ML Service** – Risk prediction model & API
+- **Dashboard** – Monitoring and visualization
+
+---
+
+### 📌 Note for Reviewers
+This repository was **restructured intentionally** to improve clarity, scalability, and ease of evaluation during the hackathon.
+
+
+
