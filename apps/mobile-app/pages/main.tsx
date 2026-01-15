@@ -216,7 +216,7 @@ export default function Main() {
     }
   };
 
-  // Enhanced SOS function using live backend service
+  // Enhanced SOS function - calls backend AND opens SMS app
   const handleEnhancedSOS = async () => {
     if (!currentLocation || !text) {
       Alert.alert('Error', 'Location or user information not available');
@@ -225,37 +225,116 @@ export default function Main() {
 
     setIsSendingSOS(true);
     try {
-      console.log('🚀 Sending enhanced SOS alert using live backend...');
+      console.log('🚀 Sending enhanced SOS alert...');
       
-      // Use the new sendSOS function instead of local SMS service
+      // Step 1: Call backend API first
       const sosData = {
-        userId: generateUserId(text || 'user'), // Dynamic userId based on username
+        userId: generateUserId(text || 'user'),
         username: text,
         latitude: currentLocation.latitude,
         longitude: currentLocation.longitude,
         hour: new Date().getHours(),
-        crime_density: 0.8,        // ML service expects this
-        poi_count: 23,            // ML service expects this
-        isNight: new Date().getHours() >= 20 || new Date().getHours() <= 6,  // ML service expects this
-        isIsolated: true          // ML service expects this
+        crime_density: 0.8,
+        poi_count: 23,
+        isNight: new Date().getHours() >= 20 || new Date().getHours() <= 6,
+        isIsolated: true
       };
 
-      const result = await sendSOS(sosData);
-      
-      console.log('✅ Live SOS Result:', result);
-      Alert.alert(
-        '✅ SOS Sent via Live Backend!',
-        `Risk Level: ${result.riskLevel}\nLocation: ${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}\nData sent to veera-core.onrender.com`
-      );
+      try {
+        const result = await sendSOS(sosData);
+        console.log('✅ Backend SOS Result:', result);
+        
+        // Show backend success message
+        Alert.alert(
+          '✅ SOS Alert Sent to Backend!',
+          `Risk Level: ${result.riskLevel}\nNow opening SMS app to notify emergency contacts...`,
+          [{ text: 'OK', style: 'default' }]
+        );
+      } catch (backendError) {
+        console.log('Backend SOS failed, but continuing with SMS:', backendError);
+      }
+
+      // Step 2: Open SMS app with pre-filled message
+      await openSMSAppWithSOS();
+
     } catch (error) {
       console.error('Enhanced SOS failed:', error);
       Alert.alert(
         'SOS Failed',
-        'Failed to send SOS via live backend. Please try again.',
+        'Failed to send SOS alert. Please try again.',
         [{ text: 'OK', style: 'default' }]
       );
     } finally {
       setIsSendingSOS(false);
+    }
+  };
+
+  // Helper function to open SMS app with pre-filled SOS message
+  const openSMSAppWithSOS = async () => {
+    const name = text || 'User';
+    const location = currentAddress || 'Location unavailable';
+    const currentTime = new Date().toLocaleString();
+    const messageBody = `🚨 SOS ALERT\n${name} needs immediate help!\n📍 Location: ${location}\n⏰ Time: ${currentTime}\n📍 Coordinates: ${currentLocation?.latitude.toFixed(6)}, ${currentLocation?.longitude.toFixed(6)}\n\nPlease contact immediately!`;
+    
+    try {
+      // Send SMS to ALL emergency contacts
+      for (const contact of emergencyContacts) {
+        // Format phone number with +91 prefix for India
+        const phoneNumber = contact.number.startsWith('+91') 
+          ? contact.number 
+          : `+91${contact.number}`;
+        
+        // Try different SMS URL formats for better compatibility
+        const smsFormats = [
+          `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`,
+          `sms:${phoneNumber}&body=${encodeURIComponent(messageBody)}`,
+          `sms:${phoneNumber};body=${encodeURIComponent(messageBody)}`
+        ];
+        
+        let smsOpened = false;
+        
+        for (const url of smsFormats) {
+          try {
+            console.log(`Trying SOS SMS URL for ${contact.name}: ${url}`);
+            await Linking.openURL(url);
+            console.log(`✅ SMS opened for ${contact.name}: ${phoneNumber}`);
+            smsOpened = true;
+            break; // Exit loop if successful
+          } catch (urlError) {
+            console.log(`SMS URL format failed: ${url}`, urlError);
+            continue; // Try next format
+          }
+        }
+        
+        if (!smsOpened) {
+          console.error(`All SMS formats failed for ${contact.name}: ${phoneNumber}`);
+          // Try opening SMS app without body as fallback
+          try {
+            const fallbackUrl = `sms:${phoneNumber}`;
+            console.log(`Trying fallback SMS URL for ${contact.name}: ${fallbackUrl}`);
+            await Linking.openURL(fallbackUrl);
+            console.log(`Fallback SMS opened for ${contact.name}: ${phoneNumber}`);
+          } catch (fallbackError) {
+            console.error(`Fallback SMS also failed for ${contact.name}`, fallbackError);
+          }
+        }
+        
+        // Small delay between contacts
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Success feedback
+      ToastAndroid.show(
+        `SMS app opened for ${emergencyContacts.length} emergency contacts!`, 
+        ToastAndroid.LONG
+      );
+      
+    } catch (error) {
+      console.error('SMS Error:', error);
+      Alert.alert(
+        'SMS Error', 
+        'Failed to open SMS app. Please check your device settings.'
+      );
     }
   };
 
