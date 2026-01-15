@@ -33,12 +33,12 @@ const DashboardHeader = () => {
     <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-3 group cursor-pointer">
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-400 shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105">
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105">
           <Shield className="w-5 h-5 text-primary-foreground" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-red-400 tracking-tight">VEERA</h1>
-          <p className="text-[11px] text-red-300 -mt-0.5 font-medium">Safety Dashboard</p>
+          <h1 className="text-lg font-bold text-foreground tracking-tight">VEERA</h1>
+          <p className="text-[11px] text-muted-foreground -mt-0.5 font-medium">Safety Dashboard</p>
         </div>
       </div>
 

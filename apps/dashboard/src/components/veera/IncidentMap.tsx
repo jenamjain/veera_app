@@ -1,137 +1,173 @@
-import { useEffect, useRef } from "react";
-import { Incident } from "@/types/incident";
-import { User } from "@/apis/userApi";
+import { Incident } from '@/types/incident';
+import { MapPin } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface IncidentMapProps {
   incidents: Incident[];
-  users: User[];
   selectedIncident: Incident | null;
   onSelectIncident: (incident: Incident) => void;
 }
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const getMarkerColor = (level: Incident['riskLevel']): string => {
+  switch (level) {
+    case 'high':
+      return 'text-risk-high';
+    case 'medium':
+      return 'text-risk-medium';
+    case 'low':
+      return 'text-risk-low';
+  }
+};
 
-const IncidentMap = ({
-  incidents,
-  users,
-  selectedIncident,
-  onSelectIncident,
-}: IncidentMapProps) => {
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  const mapInstance = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
+const getMarkerBg = (level: Incident['riskLevel']): string => {
+  switch (level) {
+    case 'high':
+      return 'bg-risk-high/20';
+    case 'medium':
+      return 'bg-risk-medium/20';
+    case 'low':
+      return 'bg-risk-low/20';
+  }
+};
 
-  // 1️⃣ Load Google Maps script
-  useEffect(() => {
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.error("❌ Google Maps API key missing");
-      return;
-    }
-
-    if (window.google?.maps) {
-      initMap();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
-    script.async = true;
-    script.defer = true;
-    script.onload = initMap;
-
-    document.body.appendChild(script);
-  }, []);
-
-  // 2️⃣ Initialize map
-  const initMap = () => {
-    if (!mapRef.current || mapInstance.current) return;
-
-    mapInstance.current = new google.maps.Map(mapRef.current, {
-      center: { lat: 22.9734, lng: 78.6569 }, // India center
-      zoom: 5,
-      disableDefaultUI: true,
-      zoomControl: true,
-    });
+const IncidentMap = ({ incidents, selectedIncident, onSelectIncident }: IncidentMapProps) => {
+  // Placeholder map - positions are relative to the container
+  // In production, this would be replaced with Mapbox
+  const getRelativePosition = (incident: Incident) => {
+    // Normalize lat/long to percentage positions for the placeholder
+    // Using rough India bounds: lat 8-35, long 68-97
+    const latNorm = ((incident.latitude - 8) / (35 - 8)) * 100;
+    const longNorm = ((incident.longitude - 68) / (97 - 68)) * 100;
+    
+    return {
+      top: `${100 - latNorm}%`,
+      left: `${longNorm}%`,
+    };
   };
-
-  // 3️⃣ Render markers whenever data changes
-  useEffect(() => {
-    if (!mapInstance.current) return;
-
-    // Clear old markers
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
-
-    // INCIDENT MARKERS (RED / ORANGE / GREEN)
-    incidents.forEach((incident) => {
-      const color =
-        incident.riskLevel === "high"
-          ? "red"
-          : incident.riskLevel === "medium"
-          ? "orange"
-          : "green";
-
-      const marker = new google.maps.Marker({
-        position: {
-          lat: incident.latitude,
-          lng: incident.longitude,
-        },
-        map: mapInstance.current!,
-        title: incident.uid,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: color,
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: "#fff",
-        },
-      });
-
-      marker.addListener("click", () => onSelectIncident(incident));
-      markersRef.current.push(marker);
-    });
-
-    // USER MARKERS (BLUE)
-    users.forEach((user) => {
-      if (!user.latitude || !user.longitude) return;
-
-      const marker = new google.maps.Marker({
-        position: {
-          lat: user.latitude,
-          lng: user.longitude,
-        },
-        map: mapInstance.current!,
-        title: user.address || "User location",
-        icon: {
-          path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-          scale: 6,
-          fillColor: "#2563eb",
-          fillOpacity: 1,
-          strokeWeight: 1,
-          strokeColor: "#fff",
-        },
-      });
-
-      markersRef.current.push(marker);
-    });
-  }, [incidents, users]);
-
-  // 4️⃣ Center map on selected incident
-  useEffect(() => {
-    if (!selectedIncident || !mapInstance.current) return;
-
-    mapInstance.current.panTo({
-      lat: selectedIncident.latitude,
-      lng: selectedIncident.longitude,
-    });
-    mapInstance.current.setZoom(12);
-  }, [selectedIncident]);
 
   return (
     <div className="h-full flex flex-col bg-muted/20">
-      <div className="flex-1 m-4 rounded-2xl overflow-hidden border border-border/50 shadow-inner">
-        <div ref={mapRef} className="w-full h-full" />
+      {/* Map Container */}
+      <div className="flex-1 relative overflow-hidden m-4 rounded-2xl bg-gradient-to-br from-secondary via-muted/50 to-muted border border-border/50 shadow-inner">
+        {/* Placeholder grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px),
+              linear-gradient(to bottom, hsl(var(--foreground)) 1px, transparent 1px)
+            `,
+            backgroundSize: '50px 50px',
+          }}
+        />
+
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/20 via-transparent to-background/10 pointer-events-none" />
+        
+        {/* Map placeholder label */}
+        <div className="absolute top-4 left-4 px-4 py-2.5 bg-card/95 backdrop-blur-sm rounded-xl border border-border/50 shadow-lg">
+          <p className="text-xs font-medium text-muted-foreground">
+            📍 Interactive Map • Connect Mapbox for live data
+          </p>
+        </div>
+
+        {/* Legend */}
+        <div className="absolute bottom-4 left-4 px-4 py-3 bg-card/95 backdrop-blur-sm rounded-xl border border-border/50 shadow-lg">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Risk Levels</p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-risk-high" />
+              <span className="text-xs text-muted-foreground">High</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-risk-medium" />
+              <span className="text-xs text-muted-foreground">Medium</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-risk-low" />
+              <span className="text-xs text-muted-foreground">Low</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Incident Markers */}
+        {incidents.map((incident) => {
+          const position = getRelativePosition(incident);
+          const isSelected = selectedIncident?.id === incident.id;
+
+          return (
+            <button
+              key={incident.id}
+              onClick={() => onSelectIncident(incident)}
+              className={cn(
+                'absolute transform -translate-x-1/2 -translate-y-full transition-all duration-300 ease-out',
+                'hover:scale-110 focus:outline-none focus:scale-110',
+                'group',
+                isSelected && 'scale-125 z-20'
+              )}
+              style={{ top: position.top, left: position.left }}
+              title={`${incident.uid} - ${incident.location}`}
+            >
+              {/* Pulse ring for selected */}
+              {isSelected && (
+                <span className={cn(
+                  'absolute -inset-3 rounded-full animate-ping opacity-30',
+                  getMarkerBg(incident.riskLevel)
+                )} />
+              )}
+              
+              {/* Marker shadow/glow */}
+              <span className={cn(
+                'absolute inset-0 rounded-full blur-sm transition-opacity duration-300',
+                getMarkerBg(incident.riskLevel),
+                isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
+              )} />
+              
+              <MapPin 
+                className={cn(
+                  'w-8 h-8 drop-shadow-lg relative transition-all duration-300',
+                  getMarkerColor(incident.riskLevel),
+                  isSelected && 'animate-pulse-soft'
+                )}
+                fill={isSelected ? 'currentColor' : 'white'}
+                strokeWidth={isSelected ? 2.5 : 2}
+              />
+            </button>
+          );
+        })}
+
+        {/* Selected incident callout */}
+        {selectedIncident && (
+          <div 
+            className={cn(
+              'absolute bg-card rounded-xl shadow-xl border border-border/50 p-4 max-w-[220px] z-30',
+              'transform -translate-x-1/2 animate-scale-in'
+            )}
+            style={{ 
+              top: `calc(${getRelativePosition(selectedIncident).top} - 90px)`,
+              left: getRelativePosition(selectedIncident).left,
+            }}
+          >
+            {/* Arrow */}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card border-r border-b border-border/50 rotate-45" />
+            
+            <p className="text-sm font-bold text-foreground">{selectedIncident.uid}</p>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{selectedIncident.location}</p>
+            <div className={cn(
+              'mt-2 pt-2 border-t border-border/50 flex items-center gap-1.5'
+            )}>
+              <span className={cn(
+                'w-2 h-2 rounded-full',
+                selectedIncident.riskLevel === 'high' && 'bg-risk-high',
+                selectedIncident.riskLevel === 'medium' && 'bg-risk-medium',
+                selectedIncident.riskLevel === 'low' && 'bg-risk-low'
+              )} />
+              <span className="text-xs font-medium text-muted-foreground">
+                Risk Score: {selectedIncident.riskScore}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
