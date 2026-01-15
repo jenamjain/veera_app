@@ -121,7 +121,7 @@ export default function Main() {
       // Show risk level to user
       Alert.alert(
         'Risk Assessment Complete',
-        `Risk Level: ${response.riskLevel}\nRisk Score: ${response.riskScore}/100`,
+        `Risk Level: ${response.riskLevel}\nRisk Score: ${Math.round(response.riskScore)}/100`,
         [{ text: 'OK', style: 'default' }]
       );
 
@@ -178,41 +178,56 @@ export default function Main() {
     try {
       console.log('🚀 Testing sendSOS with dynamic data...');
       
-      // Get current hour dynamically
-      const currentHour = new Date().getHours();
-      
-      // Create dynamic test data using current location and user info
-      const dynamicTestData = {
-        userId: generateUserId(text || 'user'), // Dynamic userId based on username
-        username: text || "TestUser",
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        hour: currentHour,
-        crime_density: 0.8,        // ML service expects this
-        poi_count: 23,            // ML service expects this
-        isNight: currentHour >= 20 || currentHour <= 6,  // ML service expects this
-        isIsolated: true          // ML service expects this
+      // Convert LocationData to LocationObject format for DataCollectionService
+      const locationObject = {
+        coords: {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+          altitude: null,
+          accuracy: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null
+        },
+        timestamp: Date.now()
       };
+      
+      // Collect dynamic data using DataCollectionService
+      const dynamicRiskData = await DataCollectionService.collectRiskAssessmentData(
+        generateUserId(text || 'user'),
+        text || 'TestUser',
+        locationObject,
+        emergencyContacts
+      );
 
-      const result = await sendSOS(dynamicTestData);
+      console.log('📊 Dynamic test data collected:', dynamicRiskData);
+
+      const result = await sendSOS(dynamicRiskData);
 
       console.log('✅ Success! Result:', result);
       console.log('📊 Risk Level:', result.riskLevel);
       console.log('📍 Used Location:', `${currentLocation.latitude}, ${currentLocation.longitude}`);
-      console.log('⏰ Current Hour:', currentHour);
-      console.log('🌙 Night Time:', dynamicTestData.isNight);
+      console.log('⏰ Current Hour:', dynamicRiskData.hour);
+      console.log('🌙 Night Time:', dynamicRiskData.isNight);
+      console.log('🏢 POI Count:', dynamicRiskData.poi_count);
+      console.log('🚨 Crime Density:', dynamicRiskData.crime_density);
+      console.log('🔍 Is Isolated:', dynamicRiskData.isIsolated);
       
       Alert.alert(
         '✅ Dynamic Test Successful!', 
         `Risk Level: ${result.riskLevel}\n` +
         `Location: ${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}\n` +
-        `Time: ${currentHour}:00\n` +
-        `Night: ${dynamicTestData.isNight ? 'Yes' : 'No'}\n` +
-        `Field names are now correct and data is dynamic!`
+        `Time: ${dynamicRiskData.hour}:00\n` +
+        `Night: ${dynamicRiskData.isNight ? 'Yes' : 'No'}\n` +
+        `POI Count: ${dynamicRiskData.poi_count}\n` +
+        `Crime Density: ${dynamicRiskData.crime_density.toFixed(2)}\n` +
+        `Is Isolated: ${dynamicRiskData.isIsolated ? 'Yes' : 'No'}\n` +
+        `Risk Score: ${Math.round(result.riskScore || 0)}/100\n\n` +
+        `All data is now dynamic and real!`
       );
     } catch (error:any) {
       console.error('❌ sendSOS error:', error);
-      Alert.alert('❌ Test Failed', `Error: ${error.message}\n\nThe backend may still expect old field names.`);
+      Alert.alert('❌ Test Failed', `Error: ${error.message}`);
     }
   };
 
@@ -227,18 +242,29 @@ export default function Main() {
     try {
       console.log('🚀 Sending enhanced SOS alert...');
       
-      // Step 1: Call backend API first
-      const sosData = {
-        userId: generateUserId(text || 'user'),
-        username: text,
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        hour: new Date().getHours(),
-        crime_density: 0.8,
-        poi_count: 23,
-        isNight: new Date().getHours() >= 20 || new Date().getHours() <= 6,
-        isIsolated: true
+      // Convert LocationData to LocationObject format for DataCollectionService
+      const locationObject = {
+        coords: {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+          altitude: null,
+          accuracy: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null
+        },
+        timestamp: Date.now()
       };
+      
+      // Collect dynamic data using DataCollectionService
+      const sosData = await DataCollectionService.collectRiskAssessmentData(
+        generateUserId(text || 'user'),
+        text,
+        locationObject,
+        emergencyContacts
+      );
+
+      console.log('📊 Dynamic SOS data collected:', sosData);
 
       try {
         const result = await sendSOS(sosData);
@@ -247,7 +273,7 @@ export default function Main() {
         // Show backend success message
         Alert.alert(
           '✅ SOS Alert Sent to Backend!',
-          `Risk Level: ${result.riskLevel}\nNow opening SMS app to notify emergency contacts...`,
+          `Risk Level: ${result.riskLevel}\nRisk Score: ${Math.round(result.riskScore || 0)}/100\nCrime Density: ${sosData.crime_density.toFixed(2)}\nPOI Count: ${sosData.poi_count}\nIs Isolated: ${sosData.isIsolated ? 'Yes' : 'No'}\n\nNow opening SMS app to notify emergency contacts...`,
           [{ text: 'OK', style: 'default' }]
         );
       } catch (backendError) {
@@ -725,7 +751,9 @@ export default function Main() {
             <Text style={[styles.riskLevel, { color: getRiskLevelColor(riskAssessment.riskLevel) }]}>
               {riskAssessment.riskLevel.toUpperCase()}
             </Text>
-            <Text style={styles.riskScore}>Score: {riskAssessment.riskScore}/100</Text>
+            <Text style={[styles.riskScore, { color: getRiskLevelColor(riskAssessment.riskLevel) }]}>
+              Score: {Math.round(riskAssessment.riskScore)}/100
+            </Text>
             {lastAssessmentTime && (
               <Text style={styles.assessmentTime}>
                 Last assessed: {lastAssessmentTime.toLocaleTimeString()}
