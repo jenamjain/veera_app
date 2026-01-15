@@ -1,17 +1,16 @@
 import axios, { AxiosResponse } from 'axios';
 
 // API base configuration
-// All services now use live backend - veera-core.onrender.com
-const API_BASE_URL = 'https://veera-core.onrender.com/api';
-const SOS_API_BASE_URL = 'https://veera-core.onrender.com/api';
+// For React Native emulators, use your machine's IP address instead of localhost
+const API_BASE_URL = process.env.NODE_ENV === 'development' ? 'http://192.168.1.12:8080/api' : 'http://localhost:8080/api';
+const SOS_API_BASE_URL = process.env.NODE_ENV === 'development' ? 'http://192.168.1.12:3000' : 'http://localhost:3000';
 const VEERA_CORE_API_URL = 'https://veera-core.onrender.com/api';
 
-// Alternative: Try multiple possible addresses - prioritize live service first
+// Alternative: Try multiple possible addresses
 const POSSIBLE_BASE_URLS = [
-  'https://veera-core.onrender.com/api',   // Live service - try first
-  'http://localhost:8080/api',           // Local development - fallback
-  'http://10.0.2.2:8080/api',          // Android Emulator
-  'http://192.168.1.12:8080/api',       // Your machine's IP - last fallback
+  'http://192.168.1.12:8080/api', // Your machine's IP
+  'http://10.0.2.2:8080/api',    // Android Emulator
+  'http://localhost:8080/api',   // Fallback for development
 ];
 
 // Create axios instances with fallback URLs
@@ -64,10 +63,10 @@ export interface RiskAssessmentData {
   latitude: number;
   longitude: number;
   hour: number;
-  crime_density: number;    // ML service expects this
-  poi_count: number;        // ML service expects this
-  isNight: boolean;         // ML service expects this
-  isIsolated: boolean;      // ML service expects this
+  crimeDensity: number;
+  poiCount: number;
+  night: boolean;
+  isolated: boolean;
 }
 
 export interface RiskAssessmentResponse {
@@ -100,10 +99,10 @@ export interface SendSOSData {
   latitude: number;
   longitude: number;
   hour: number;
-  crime_density: number;    // ML service expects this
-  poi_count: number;        // ML service expects this
-  isNight: boolean;         // ML service expects this
-  isIsolated: boolean;      // ML service expects this
+  crime_density: number;
+  poi_count: number;
+  isNight: boolean;
+  isIsolated: boolean;
 }
 
 export interface SendSOSResponse {
@@ -113,10 +112,10 @@ export interface SendSOSResponse {
 
 // API Service Class
 export class WomenSafetyApiService {
-  // Risk Assessment API - Calls live backend which integrates with ML model
+  // Risk Assessment API - Calls Spring Boot backend which integrates with ML model
   static async assessRisk(data: RiskAssessmentData): Promise<RiskAssessmentResponse> {
     try {
-      console.log('🌐 API Call - Sending request to live backend:', API_BASE_URL);
+      console.log('🌐 API Call - Sending request to:', API_BASE_URL);
       console.log('📤 API Data:', data);
       
       const response: AxiosResponse<RiskAssessmentResponse> = await springBootApi.post(
@@ -124,10 +123,10 @@ export class WomenSafetyApiService {
         data
       );
       
-      console.log('🎯 Live Risk assessment response:', response.data);
+      console.log('📥 API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('❌ Live API Error Details:', {
+      console.error('❌ API Error Details:', {
         message: error.message,
         code: error.code,
         status: error.response?.status,
@@ -141,52 +140,28 @@ export class WomenSafetyApiService {
       });
       
       if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNREFUSED') {
-          throw new Error('Live backend server is not responding. Please check veera-core.onrender.com status.');
-        } else if (error.code === 'ENOTFOUND') {
-          throw new Error('Cannot connect to live backend. Check your internet connection.');
-        } else {
-          throw new Error(`Live API Error: ${error.response?.status || 'Unknown'} - ${error.message}`);
-        }
+        throw new Error(`API Error: ${error.response?.status} - ${error.message}`);
       }
       throw error;
     }
   }
 
-  // SOS Alert API - Calls live backend for SMS notifications
+  // SOS Alert API - Calls Node.js backend for SMS notifications
   static async sendSOSAlert(data: SOSRequest): Promise<SOSResponse> {
     try {
-      console.log('🚀 Sending SOS alert to live backend:', SOS_API_BASE_URL);
+      console.log('Sending SOS alert:', data);
       
       const response: AxiosResponse<SOSResponse> = await sosApi.post(
         '/api/send-sos',
         data
       );
       
-      console.log('📥 Live SOS alert response:', response.data);
+      console.log('SOS alert response:', response.data);
       return response.data;
-    } catch (error: any) {
-      console.error('❌ Live SMS API Error Details:', {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          baseURL: error.config?.baseURL,
-          method: error.config?.method
-        }
-      });
-      
+    } catch (error:any) {
+      console.error('Error sending SOS alert:', error);
       if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNREFUSED') {
-          throw new Error('Live SMS backend server is not responding. Please check veera-core.onrender.com status.');
-        } else if (error.code === 'ENOTFOUND') {
-          throw new Error('Cannot connect to live SMS backend. Check your internet connection.');
-        } else {
-          throw new Error(`Live SMS API Error: ${error.response?.status || 'Unknown'} - ${error.message}`);
-        }
+        throw new Error(`SOS API Error: ${error.response?.status} - ${error.message}`);
       }
       throw error;
     }
