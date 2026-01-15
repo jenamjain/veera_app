@@ -30,6 +30,10 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
@@ -37,15 +41,20 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-location",
-      "expo-font"
+      "expo-router",
+      "expo-location"
     ],
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "56a63218-b160-4016-a220-77d967cda0b9"
+        "projectId": "9962b1c3-ffc3-4018-bbdf-3d7ba9b5ba35"
       }
     },
-    "owner": "jenamjain"
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9962b1c3-ffc3-4018-bbdf-3d7ba9b5ba35"
+    }
   }
 }

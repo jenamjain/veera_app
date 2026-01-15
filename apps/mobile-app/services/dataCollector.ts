@@ -72,10 +72,10 @@ export class DataCollectionService {
       latitude: locationData.latitude,
       longitude: locationData.longitude,
       hour: environmentalData.hour,
-      crimeDensity: crimeData.density,
-      poiCount: poiData.count,
-      night: environmentalData.isNight,
-      isolated: isIsolated,
+      crime_density: crimeData.density,    // ML service expects this
+      poi_count: poiData.count,            // ML service expects this
+      isNight: environmentalData.isNight,  // ML service expects this
+      isIsolated: isIsolated,               // ML service expects this
     };
     
     console.log('📋 Final risk assessment data:', finalData);
@@ -210,7 +210,7 @@ export class DataCollectionService {
   static validateRiskAssessmentData(data: RiskAssessmentData): boolean {
     const requiredFields = [
       'userId', 'username', 'latitude', 'longitude', 
-      'hour', 'crimeDensity', 'poiCount', 'night', 'isolated'
+      'hour', 'crime_density', 'poi_count', 'isNight', 'isIsolated'
     ];
     
     for (const field of requiredFields) {
@@ -247,7 +247,7 @@ export class DataCollectionService {
     }
     
     // Validate ranges
-    if (data.crimeDensity < 0 || data.poiCount < 0) {
+    if (data.crime_density < 0 || data.poi_count < 0) {
       console.error('Invalid crime density or POI count');
       return false;
     }

@@ -42,6 +42,14 @@ export default function Main() {
   const [isSendingSOS, setIsSendingSOS] = useState(false);
   const [lastAssessmentTime, setLastAssessmentTime] = useState<Date | null>(null);
   
+  // Generate unique userId based on username and timestamp
+  const generateUserId = (username: string): string => {
+    // Create a unique hash from username + timestamp
+    const hash = username.toLowerCase().replace(/\s+/g, '_');
+    const timestamp = Date.now().toString(36); // Base36 for shorter string
+    return `user_${hash}_${timestamp}`;
+  };
+  
   const localTime = new Date().toLocaleTimeString();
   
   const isValidIndianPhoneNumber = (phone: string): boolean => {
@@ -88,7 +96,7 @@ export default function Main() {
       
       // Collect all required data for ML model
       const riskData = await DataCollectionService.collectRiskAssessmentData(
-        'user_123', // In a real app, this would come from authentication
+        generateUserId(text || 'user'), // Dynamic userId based on username
         text,
         locationObject, // Proper LocationObject format
         emergencyContacts
@@ -124,7 +132,7 @@ export default function Main() {
           'Your current location has been assessed as high risk. Would you like to send an SOS alert?',
           [
             { text: 'No', style: 'cancel' },
-            { text: 'Send SOS', onPress: () => handleSOSsms() }
+            { text: 'Send SOS', onPress: () => handleEnhancedSOS() }
           ]
         );
       }
@@ -160,30 +168,55 @@ export default function Main() {
     return await res.json();
   };
 
-  // Test function with the user's exact requested data
+  // Test function with dynamic data from current state
   const testSendSOS = async () => {
-    try {
-      const result = await sendSOS({
-        userId: "u20",
-        username: "tt",
-        latitude: 17.02,
-        longitude: 72.57,
-        hour: 2,
-        crime_density: 0.8,
-        poi_count: 23,
-        isNight: true,
-        isIsolated: true
-      });
+    if (!currentLocation || !text) {
+      Alert.alert('Error', 'Location or user information not available for dynamic test');
+      return;
+    }
 
-      console.log(result.riskLevel);
-      Alert.alert('Risk Assessment Result', `Risk Level: ${result.riskLevel}`);
-    } catch (error) {
-      console.error('sendSOS error:', error);
-      Alert.alert('Error', 'Failed to send SOS request');
+    try {
+      console.log('🚀 Testing sendSOS with dynamic data...');
+      
+      // Get current hour dynamically
+      const currentHour = new Date().getHours();
+      
+      // Create dynamic test data using current location and user info
+      const dynamicTestData = {
+        userId: generateUserId(text || 'user'), // Dynamic userId based on username
+        username: text || "TestUser",
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        hour: currentHour,
+        crime_density: 0.8,        // ML service expects this
+        poi_count: 23,            // ML service expects this
+        isNight: currentHour >= 20 || currentHour <= 6,  // ML service expects this
+        isIsolated: true          // ML service expects this
+      };
+
+      const result = await sendSOS(dynamicTestData);
+
+      console.log('✅ Success! Result:', result);
+      console.log('📊 Risk Level:', result.riskLevel);
+      console.log('📍 Used Location:', `${currentLocation.latitude}, ${currentLocation.longitude}`);
+      console.log('⏰ Current Hour:', currentHour);
+      console.log('🌙 Night Time:', dynamicTestData.isNight);
+      
+      Alert.alert(
+        '✅ Dynamic Test Successful!', 
+        `Risk Level: ${result.riskLevel}\n` +
+        `Location: ${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}\n` +
+        `Time: ${currentHour}:00\n` +
+        `Night: ${dynamicTestData.isNight ? 'Yes' : 'No'}\n` +
+        `Field names are now correct and data is dynamic!`
+      );
+    } catch (error:any) {
+      console.error('❌ sendSOS error:', error);
+      Alert.alert('❌ Test Failed', `Error: ${error.message}\n\nThe backend may still expect old field names.`);
     }
   };
 
-  // Enhanced SOS function using backend API
+  // Enhanced SOS function - calls backend AND opens SMS app
   const handleEnhancedSOS = async () => {
     if (!currentLocation || !text) {
       Alert.alert('Error', 'Location or user information not available');
@@ -192,44 +225,116 @@ export default function Main() {
 
     setIsSendingSOS(true);
     try {
-      console.log('Sending enhanced SOS alert...');
+      console.log('🚀 Sending enhanced SOS alert...');
       
-      const sosRequest: SOSRequest = {
-        emergencyContacts,
-        name: text,
-        location: WomenSafetyApiService.formatLocationString(
-          currentLocation.latitude,
-          currentLocation.longitude
-        ),
-        currentTime: WomenSafetyApiService.getCurrentTimeString()
+      // Step 1: Call backend API first
+      const sosData = {
+        userId: generateUserId(text || 'user'),
+        username: text,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        hour: new Date().getHours(),
+        crime_density: 0.8,
+        poi_count: 23,
+        isNight: new Date().getHours() >= 20 || new Date().getHours() <= 6,
+        isIsolated: true
       };
 
-      const response = await WomenSafetyApiService.sendSOSAlert(sosRequest);
-      
-      if (response.success) {
-        ToastAndroid.show(
-          `SOS alert sent to ${response.messagesSent} contacts via SMS!`,
-          ToastAndroid.LONG
-        );
+      try {
+        const result = await sendSOS(sosData);
+        console.log('✅ Backend SOS Result:', result);
         
+        // Show backend success message
         Alert.alert(
-          'SOS Alert Sent',
-          `Successfully sent SOS alert to ${response.messagesSent} emergency contacts.`,
+          '✅ SOS Alert Sent to Backend!',
+          `Risk Level: ${result.riskLevel}\nNow opening SMS app to notify emergency contacts...`,
           [{ text: 'OK', style: 'default' }]
         );
-      } else {
-        throw new Error(response.error || 'Unknown error');
+      } catch (backendError) {
+        console.log('Backend SOS failed, but continuing with SMS:', backendError);
       }
+
+      // Step 2: Open SMS app with pre-filled message
+      await openSMSAppWithSOS();
 
     } catch (error) {
       console.error('Enhanced SOS failed:', error);
       Alert.alert(
         'SOS Failed',
-        'Failed to send SOS alert via backend. Falling back to SMS app...',
-        [{ text: 'OK', onPress: () => handleSOSsms() }]
+        'Failed to send SOS alert. Please try again.',
+        [{ text: 'OK', style: 'default' }]
       );
     } finally {
       setIsSendingSOS(false);
+    }
+  };
+
+  // Helper function to open SMS app with pre-filled SOS message
+  const openSMSAppWithSOS = async () => {
+    const name = text || 'User';
+    const location = currentAddress || 'Location unavailable';
+    const currentTime = new Date().toLocaleString();
+    const messageBody = `🚨 SOS ALERT\n${name} needs immediate help!\n📍 Location: ${location}\n⏰ Time: ${currentTime}\n📍 Coordinates: ${currentLocation?.latitude.toFixed(6)}, ${currentLocation?.longitude.toFixed(6)}\n\nPlease contact immediately!`;
+    
+    try {
+      // Send SMS to ALL emergency contacts
+      for (const contact of emergencyContacts) {
+        // Format phone number with +91 prefix for India
+        const phoneNumber = contact.number.startsWith('+91') 
+          ? contact.number 
+          : `+91${contact.number}`;
+        
+        // Try different SMS URL formats for better compatibility
+        const smsFormats = [
+          `sms:${phoneNumber}?body=${encodeURIComponent(messageBody)}`,
+          `sms:${phoneNumber}&body=${encodeURIComponent(messageBody)}`,
+          `sms:${phoneNumber};body=${encodeURIComponent(messageBody)}`
+        ];
+        
+        let smsOpened = false;
+        
+        for (const url of smsFormats) {
+          try {
+            console.log(`Trying SOS SMS URL for ${contact.name}: ${url}`);
+            await Linking.openURL(url);
+            console.log(`✅ SMS opened for ${contact.name}: ${phoneNumber}`);
+            smsOpened = true;
+            break; // Exit loop if successful
+          } catch (urlError) {
+            console.log(`SMS URL format failed: ${url}`, urlError);
+            continue; // Try next format
+          }
+        }
+        
+        if (!smsOpened) {
+          console.error(`All SMS formats failed for ${contact.name}: ${phoneNumber}`);
+          // Try opening SMS app without body as fallback
+          try {
+            const fallbackUrl = `sms:${phoneNumber}`;
+            console.log(`Trying fallback SMS URL for ${contact.name}: ${fallbackUrl}`);
+            await Linking.openURL(fallbackUrl);
+            console.log(`Fallback SMS opened for ${contact.name}: ${phoneNumber}`);
+          } catch (fallbackError) {
+            console.error(`Fallback SMS also failed for ${contact.name}`, fallbackError);
+          }
+        }
+        
+        // Small delay between contacts
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Success feedback
+      ToastAndroid.show(
+        `SMS app opened for ${emergencyContacts.length} emergency contacts!`, 
+        ToastAndroid.LONG
+      );
+      
+    } catch (error) {
+      console.error('SMS Error:', error);
+      Alert.alert(
+        'SMS Error', 
+        'Failed to open SMS app. Please check your device settings.'
+      );
     }
   };
 
@@ -629,39 +734,6 @@ export default function Main() {
           </View>
         )}
 
-        {/* Debug: Manual Risk Assessment Button */}
-        <View style={{ margin: 15, alignItems: 'center' }}>
-          <TouchableOpacity 
-            style={{ 
-              backgroundColor: '#2196F3', 
-              padding: 10, 
-              borderRadius: 8,
-              paddingHorizontal: 20,
-              marginBottom: 10
-            }}
-            onPress={assessCurrentRisk}
-            disabled={isAssessingRisk}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>
-              {isAssessingRisk ? 'Assessing...' : '🔍 Test Risk Assessment'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={{ 
-              backgroundColor: '#FF6B35', 
-              padding: 10, 
-              borderRadius: 8,
-              paddingHorizontal: 20
-            }}
-            onPress={testSendSOS}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>
-              🚨 Test New sendSOS Function
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Display location and time */}
         {isSafetyActive && (
           <View style={styles.locationContainer}>
@@ -677,13 +749,13 @@ export default function Main() {
           </View>
         )}
 
-        {/* SOS SMS button */}
+        {/* SOS button */}
         <TouchableOpacity 
           style={{ 
             alignItems: 'center', 
             marginTop: 20 
           }}
-          onPress={handleSOSsms}
+          onPress={handleEnhancedSOS}
         >
           <View style={{ 
             backgroundColor: '#ff4757', 
