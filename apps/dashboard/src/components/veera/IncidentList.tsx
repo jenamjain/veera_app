@@ -1,10 +1,10 @@
-import { Incident } from "@/types/incident";
-import IncidentCard from "./IncidentCard";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { Incident } from '@/types/incident';
+import IncidentCard from './IncidentCard';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertTriangle, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface IncidentListProps {
   incidents: Incident[];
@@ -12,23 +12,14 @@ interface IncidentListProps {
   onSelect: (incident: Incident) => void;
 }
 
-const IncidentList = ({
-  incidents,
-  selectedId,
-  onSelect,
-}: IncidentListProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
+const IncidentList = ({ incidents, selectedId, onSelect }: IncidentListProps) => {
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Sort by risk score (highest first) and then by timestamp (most recent first)
   const sortedIncidents = [...incidents]
-    .filter(
-      (incident) =>
-        (incident.uid?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase()
-        ) ||
-        (incident.location?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase()
-        )
+    .filter(incident => 
+      incident.uid.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      incident.location.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
       if (b.riskScore !== a.riskScore) {
@@ -37,7 +28,7 @@ const IncidentList = ({
       return b.timestamp.getTime() - a.timestamp.getTime();
     });
 
-  const highRiskCount = incidents.filter((i) => i.riskLevel === "high").length;
+  const highRiskCount = incidents.filter(i => i.riskLevel === 'high').length;
 
   return (
     <div className="h-full flex flex-col bg-card border-r border-border">
@@ -49,14 +40,9 @@ const IncidentList = ({
               <AlertTriangle className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="font-semibold text-foreground">
-                Active Incidents
-              </h2>
+              <h2 className="font-semibold text-foreground">Active Incidents</h2>
               <p className="text-xs text-muted-foreground">
-                {incidents.length} total •{" "}
-                <span className="text-risk-high font-medium">
-                  {highRiskCount} high risk
-                </span>
+                {incidents.length} total • <span className="text-risk-high font-medium">{highRiskCount} high risk</span>
               </p>
             </div>
           </div>
@@ -93,9 +79,7 @@ const IncidentList = ({
             ))
           ) : (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">
-                No incidents found
-              </p>
+              <p className="text-sm text-muted-foreground">No incidents found</p>
             </div>
           )}
         </div>
