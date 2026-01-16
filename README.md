@@ -171,7 +171,7 @@ apps/dashboard/
 This repository was **restructured intentionally** to improve clarity, scalability, and ease of evaluation during the hackathon.
 
 
-### DEMO VIDEO..
+### APP DEMO..
 <img width="390" height="1030" alt="Screenshot 2026-01-16 at 10 45 46 AM" src="https://github.com/user-attachments/assets/c067bc98-db29-4727-a2c1-b68320293163" />
 
 <img width="390" height="360" alt="VEERA system workflow illustration" src="https://github.com/user-attachments/assets/7538800a-4ec7-48d5-b721-5ed2c682d85d" />
@@ -179,8 +179,6 @@ This repository was **restructured intentionally** to improve clarity, scalabili
 <img width="390" height="678" alt="Screenshot 2026-01-16 at 10 24 03 AM" src="https://github.com/user-attachments/assets/8607eb3b-117e-4791-b643-570f6d85439e" />
 <img width="390" height="678" alt="IMG_3444" src="https://github.com/user-attachments/assets/63563f82-428e-48e6-ae4f-ee7a09ebb44b" />
 <img width="390" height="678" alt="IMG_3445" src="https://github.com/user-attachments/assets/90c2afe8-1cd4-4629-bba4-99a6d62c08d4" />
-[verra_post.pdf](https://github.com/user-attachments/files/24673580/verra_post.pdf)
-
 
 
 
