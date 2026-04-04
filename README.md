@@ -7,7 +7,7 @@ The system predicts **risk levels (Low / Medium / High)** based on contextual in
 
 ---
 
-## 🎯 Problem Statement
+## 🎯 Problem Statement 
 
 Women safety systems today often face:
 - Lack of real-time risk assessment
@@ -160,7 +160,7 @@ apps/dashboard/
 
 ## 👥 Team Contributions
 
-- **Mobile App** – User-facing application
+- **Mobile App** – User-facing application model
 - **Backend** – Core orchestration and logic
 - **ML Service** – Risk prediction model & API
 - **Dashboard** – Monitoring and visualization
