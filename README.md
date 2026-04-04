@@ -1,4 +1,4 @@
-# 🚨 Veera – Women Safety Risk Prediction Platform
+# 🚨 Veera – Women Safety Risk Prediction Platform (A complete Working Project
 
 Veera is a **full-stack, end-to-end Women Safety platform** designed to assess and predict safety risks in real time.  
 It combines **mobile technology, backend orchestration, machine learning, and an admin dashboard** to enable faster awareness and response.
